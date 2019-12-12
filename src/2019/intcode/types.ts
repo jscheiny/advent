@@ -21,7 +21,8 @@ export interface Parameter {
 export enum Result {
     NONE,
     JUMPED,
-    NO_INPUT,
+    PAUSE,
+    HALT,
 }
 
 export interface Instruction {

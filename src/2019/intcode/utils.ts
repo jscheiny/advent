@@ -29,5 +29,6 @@ export function sliceMemory(state: State, start: number, length: number) {
 }
 
 export function assignMemory(state: State, result: Parameter, value: number) {
-    state.memory[result.value] = value;
+    const offset = result.mode === ParameterMode.RELATIVE ? state.relativeBase : 0;
+    state.memory[result.value + offset] = value;
 }

@@ -29,7 +29,7 @@ const read: Instruction = {
     execute: ([result], state) => {
         const nextInput = state.input.shift();
         if (nextInput === undefined) {
-            return Result.NO_INPUT;
+            return Result.PAUSE;
         } else {
             assignMemory(state, result, nextInput);
             return Result.NONE;
@@ -109,6 +109,12 @@ const modifyRelativeBase: Instruction = {
     },
 };
 
+const halt: Instruction = {
+    name: "HALT",
+    parameters: 0,
+    execute: () => Result.HALT,
+};
+
 export const INSTRUCTIONS: { [opCode: number]: Instruction } = {
     1: add,
     2: multiply,
@@ -119,4 +125,5 @@ export const INSTRUCTIONS: { [opCode: number]: Instruction } = {
     7: lessThan,
     8: equals,
     9: modifyRelativeBase,
+    99: halt,
 };

@@ -1,6 +1,6 @@
 import { INSTRUCTIONS } from "./instructions";
 import { Instruction, Parameter, ParameterMode, Result, State } from "./types";
-import { accessMemory, getParameterValue, sliceMemory } from "./utils";
+import { accessMemory, sliceMemory } from "./utils";
 
 export function getInitialProgramState(rawMemory: number[], rawInput: number[]): State {
     return {
@@ -24,57 +24,26 @@ export function executeProgram(state: State): State {
 
     while (true) {
         const opCode = accessMemory(state, state.address) % 100;
-        if (opCode === 99) {
-            state.halted = true;
-            break;
-        } else if (opCode in INSTRUCTIONS) {
-            const instruction = INSTRUCTIONS[opCode];
-            const parameters = parseParameters(instruction, state);
-            console.log([
-                accessMemory(state, state.address),
-                ...sliceMemory(state, state.address + 1, instruction.parameters),
-            ]);
-            printInstruction(instruction, state, parameters);
-            const result = instruction.execute(parameters, state);
-            if (result === Result.NONE) {
-                state.address += instruction.parameters + 1;
-            } else if (result === Result.NO_INPUT) {
-                break;
-            } else {
-                console.log("jumped", state.address);
-            }
-        } else {
+        if (!(opCode in INSTRUCTIONS)) {
             console.error("Unknown opcode received", opCode);
             state.halted = true;
-            return state;
+            break;
+        }
+
+        const instruction = INSTRUCTIONS[opCode];
+        const parameters = parseParameters(instruction, state);
+        const result = instruction.execute(parameters, state);
+
+        if (result === Result.NONE) {
+            state.address += instruction.parameters + 1;
+        } else if (result === Result.PAUSE) {
+            break;
+        } else if (result === Result.HALT) {
+            state.halted = true;
+            break;
         }
     }
     return state;
-}
-
-function printInstruction(instruction: Instruction, state: State, parameters: Parameter[]) {
-    console.log(`${state.address}: ${instruction.name}`);
-    for (let index = 0; index < parameters.length; index++) {
-        const parameter = parameters[index];
-        if (index === 2) {
-            console.log(`   -> ${parameter.value}`);
-        } else {
-            console.log(
-                `   ${parameter.value} -> ${getParameterValue(parameter, state)} (${getModeName(parameter.mode)})`,
-            );
-        }
-    }
-}
-
-function getModeName(mode: ParameterMode) {
-    switch (mode) {
-        case ParameterMode.POSITION:
-            return "POSITION";
-        case ParameterMode.IMMEDIATE:
-            return "IMMEDIATE";
-        case ParameterMode.RELATIVE:
-            return "RELATIVE";
-    }
 }
 
 export function parseParameters(instruction: Instruction, state: State) {
