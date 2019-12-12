@@ -18,8 +18,18 @@ interface Coordinate {
     y: number;
 }
 
+interface Bounds {
+    min: Coordinate;
+    max: Coordinate;
+}
+
 function serializeCoordinate({ x, y }: Coordinate): string {
     return `${x},${y}`;
+}
+
+function deserializeCoordinate(str: string): Coordinate {
+    const [x, y] = str.split(",").map(v => parseInt(v, 10));
+    return { x, y };
 }
 
 function turnRight(direction: Direction) {
@@ -70,6 +80,7 @@ function runRobot(code: number[]) {
     let computer = getInitialProgramState(code, []);
     let position: Coordinate = { x: 0, y: 0 };
     let orientation = Direction.UP;
+    paintSquare(paint, position, Color.WHITE);
 
     while (!computer.halted) {
         computer.input = [getPaintColor(paint, position)];
@@ -83,7 +94,7 @@ function runRobot(code: number[]) {
         position = move(position, orientation);
     }
 
-    console.log(paint.size);
+    printPaint(paint);
 }
 
 function getPaintColor(paint: Map<string, Color>, coordinate: Coordinate) {
@@ -98,6 +109,28 @@ function getPaintColor(paint: Map<string, Color>, coordinate: Coordinate) {
 function paintSquare(paint: Map<string, Color>, coordinate: Coordinate, color: Color) {
     const key = serializeCoordinate(coordinate);
     paint.set(key, color);
+}
+
+function getBounds(paint: Map<string, Color>): Bounds {
+    const keys = Array.from(paint.keys()).map(deserializeCoordinate);
+    const xValues = keys.map(key => key.x);
+    const yValues = keys.map(key => key.y);
+    return {
+        min: { x: Math.min(...xValues), y: Math.min(...yValues) },
+        max: { x: Math.max(...xValues), y: Math.max(...yValues) },
+    };
+}
+
+function printPaint(paint: Map<string, Color>) {
+    const { min, max } = getBounds(paint);
+    for (let y = min.y; y <= max.y; y++) {
+        let row = "";
+        for (let x = min.x; x <= max.x; x++) {
+            const color = getPaintColor(paint, { x, y });
+            row += color === Color.BLACK ? "#" : " ";
+        }
+        console.log(row);
+    }
 }
 
 runRobot(robotCode);
