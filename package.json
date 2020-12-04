@@ -1,6 +1,6 @@
 {
-    "name": "advent-of-code-2019",
-    "description": "Advent of Code 2019 solutions",
+    "name": "advent-of-code",
+    "description": "Advent of Code solutions",
     "version": "0.0.1",
     "license": "MIT",
     "scripts": {
