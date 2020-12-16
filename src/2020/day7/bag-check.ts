@@ -63,3 +63,24 @@ function findContainingBags(bag: string) {
 }
 
 findContainingBags("shiny gold");
+
+function getContainedBagCount(startBag: string, memoTable: Map<string, number>): number {
+    if (memoTable.has(startBag)) {
+        return memoTable.get(startBag)!;
+    }
+
+    const containedBags = BagLookup[startBag];
+    if (containedBags === undefined || containedBags.length === 0) {
+        memoTable.set(startBag, 1);
+        return 1;
+    }
+
+    const count =
+        containedBags.map(({ key, count }) => getContainedBagCount(key, memoTable) * count).reduce((a, b) => a + b, 0) +
+        1;
+    memoTable.set(startBag, count);
+    return count;
+}
+
+const table = new Map<string, number>();
+console.log(getContainedBagCount("shiny gold", table) - 1);
