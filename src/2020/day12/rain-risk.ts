@@ -27,36 +27,6 @@ enum Direction {
     WEST = "WEST",
 }
 
-function rotateLeft(direction: Direction): Direction {
-    switch (direction) {
-        case Direction.NORTH:
-            return Direction.WEST;
-        case Direction.SOUTH:
-            return Direction.EAST;
-        case Direction.EAST:
-            return Direction.NORTH;
-        case Direction.WEST:
-            return Direction.SOUTH;
-    }
-}
-
-function flip(direction: Direction): Direction {
-    switch (direction) {
-        case Direction.NORTH:
-            return Direction.SOUTH;
-        case Direction.SOUTH:
-            return Direction.NORTH;
-        case Direction.EAST:
-            return Direction.WEST;
-        case Direction.WEST:
-            return Direction.EAST;
-    }
-}
-
-function rotateRight(direction: Direction) {
-    return flip(rotateLeft(direction));
-}
-
 function getDirectionVector(direction: Direction): Vector {
     switch (direction) {
         case Direction.NORTH:
@@ -72,7 +42,7 @@ function getDirectionVector(direction: Direction): Vector {
 
 interface FerryState {
     position: Vector;
-    direction: Direction;
+    waypoint: Vector;
 }
 
 enum StepType {
@@ -97,46 +67,50 @@ function parseStep(line: string): Step {
 }
 
 function getNextState(state: FerryState, step: Step): FerryState {
-    const { position, direction } = state;
+    const { position, waypoint } = state;
     const { stepType, stepValue } = step;
     switch (stepType) {
         case StepType.NORTH:
-            return { position: position.add(getDirectionVector(Direction.NORTH).scale(stepValue)), direction };
+            return { position, waypoint: waypoint.add(getDirectionVector(Direction.NORTH).scale(stepValue)) };
         case StepType.SOUTH:
-            return { position: position.add(getDirectionVector(Direction.SOUTH).scale(stepValue)), direction };
+            return { position, waypoint: waypoint.add(getDirectionVector(Direction.SOUTH).scale(stepValue)) };
         case StepType.EAST:
-            return { position: position.add(getDirectionVector(Direction.EAST).scale(stepValue)), direction };
+            return { position, waypoint: waypoint.add(getDirectionVector(Direction.EAST).scale(stepValue)) };
         case StepType.WEST:
-            return { position: position.add(getDirectionVector(Direction.WEST).scale(stepValue)), direction };
+            return { position, waypoint: waypoint.add(getDirectionVector(Direction.WEST).scale(stepValue)) };
         case StepType.FORWARD:
-            return { position: position.add(getDirectionVector(direction).scale(stepValue)), direction };
+            return { position: position.add(waypoint.scale(stepValue)), waypoint };
         case StepType.LEFT:
-            return { position, direction: rotate(direction, true, stepValue) };
+            return { position, waypoint: rotate(waypoint, true, stepValue) };
         case StepType.RIGHT:
-            return { position, direction: rotate(direction, false, stepValue) };
+            return { position, waypoint: rotate(waypoint, false, stepValue) };
     }
 }
 
-function rotate(direction: Direction, isLeft: boolean, rawAngle: number): Direction {
-    if (rawAngle === 180) {
-        return flip(direction);
-    }
+function rotateRight(waypoint: Vector) {
+    const { x, y } = waypoint;
+    return new Vector(y, -x);
+}
 
-    const angle = isLeft ? 360 - rawAngle : rawAngle;
-    switch (angle) {
-        case 90:
-            return rotateRight(direction);
-        case 270:
-            return rotateLeft(direction);
-    }
+function rotateLeft(waypoint: Vector) {
+    const { x, y } = waypoint;
+    return new Vector(-y, x);
+}
 
-    return direction;
+function rotate(waypoint: Vector, isLeft: boolean, angle: number): Vector {
+    const rotations = angle / 90;
+    const rotate = isLeft ? rotateLeft : rotateRight;
+    let result = waypoint;
+    for (let index = 0; index < rotations; index++) {
+        result = rotate(result);
+    }
+    return result;
 }
 
 function followSteps(steps: Step[]) {
     let state: FerryState = {
         position: new Vector(0, 0),
-        direction: Direction.EAST,
+        waypoint: new Vector(10, 1),
     };
 
     for (const step of steps) {
