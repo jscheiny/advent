@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 
-function applyMask(value: number, mask: string) {
+function applyMaskV1(value: number, mask: string) {
     let result: string = "";
     const binString = intToBinString(value);
     for (let index = 0; index < mask.length; index++) {
@@ -15,12 +15,42 @@ function applyMask(value: number, mask: string) {
     return parseInt(result, 2);
 }
 
-function intToBinString(int: number) {
-    let result: string = int.toString(2);
-    while (result.length < 36) {
-        result = "0" + result;
+function applyMaskV2(value: number, mask: string) {
+    const valueString = intToBinString(value);
+    const floatingPlaces = countX(mask);
+    const floatingMasks = getAllBinaryStrings(floatingPlaces);
+    const results: number[] = [];
+    for (const floatingMask of floatingMasks) {
+        let result: string = "";
+        let floatingIndex = 0;
+        for (let index = 0; index < mask.length; index++) {
+            const maskChar = mask[index];
+            const valueChar = valueString[index];
+            if (maskChar === "X") {
+                result += floatingMask[floatingIndex];
+                floatingIndex++;
+            } else if (maskChar === "0") {
+                result += valueChar;
+            } else {
+                result += "1";
+            }
+        }
+        results.push(parseInt(result, 2));
     }
-    return result;
+    return results;
+}
+
+function getAllBinaryStrings(length: number) {
+    const max = 1 << length;
+    const strings: string[] = [];
+    for (let index = 0; index < max; index++) {
+        strings.push(pad(index.toString(2), length));
+    }
+    return strings;
+}
+
+function intToBinString(int: number) {
+    return pad(int.toString(2), 36);
 }
 
 interface SetMaskCommand {
@@ -56,9 +86,39 @@ function simulateV1(commands: Command[]) {
         if (command.type === "mask") {
             mask = command.mask;
         } else {
-            memory.set(command.address, applyMask(command.value, mask));
+            memory.set(command.address, applyMaskV1(command.value, mask));
         }
     }
+    return Array.from(memory.values()).reduce((a, b) => a + b, 0);
+}
+
+function pad(value: string, digits: number) {
+    let result = value;
+    while (result.length < digits) {
+        result = "0" + result;
+    }
+    return result;
+}
+
+function countX(mask: string) {
+    return Array.from(mask).filter(value => value === "X").length;
+}
+
+function simulateV2(commands: Command[]) {
+    let mask = "000000000000000000000000000000000000";
+    const memory = new Map<number, number>();
+
+    for (const command of commands) {
+        if (command.type === "mask") {
+            mask = command.mask;
+        } else {
+            const addresses = applyMaskV2(command.address, mask);
+            for (const address of addresses) {
+                memory.set(address, command.value);
+            }
+        }
+    }
+
     return Array.from(memory.values()).reduce((a, b) => a + b, 0);
 }
 
@@ -67,3 +127,4 @@ const commands = readFileSync("src/2020/day14/input.txt", { encoding: "utf-8" })
     .map(parseCommand);
 
 console.log(simulateV1(commands));
+console.log(simulateV2(commands));
