@@ -116,41 +116,6 @@ function buildParenthesizedExpression(token: Token[], startIndex: number, nestin
     return { endIndex: endIndex + 1, expression: result };
 }
 
-// function buildExpressionImpl(tokens: Token[], startIndex: number): BuildExpressionResult {
-//     const firstToken = tokens[startIndex];
-//     switch (firstToken.kind) {
-//         case "operator":
-//             throw new Error("Expression cannot begin with an operator");
-//         case ")":
-//             throw new Error("Expression cannot begin with a close parenthesis");
-//         case "number": {
-//             const left: NumberExpression = { kind: "number", value: firstToken.value };
-//             const secondToken = tokens[startIndex + 1];
-//             if (secondToken.kind === ")") {
-//                 return { endIndex: startIndex + 2, expression: left };
-//             }
-//             if (secondToken.kind !== "operator") {
-//                 throw new Error("Number must be followed by an operator or close paren");
-//             }
-//             const { endIndex, expression: right } = buildExpressionImpl(tokens, startIndex + 2);
-//             const expression: ArithmeticExpression = {
-//                 kind: "arithmetic",
-//                 left,
-//                 operation: secondToken.operation,
-//                 right,
-//             };
-//             return { endIndex: endIndex + 1, expression };
-//         }
-//         case "(": {
-//             const { expression, endIndex } = buildExpressionImpl(tokens, startIndex + 1);
-//             // if (endIndex >= tokens.length || tokens[endIndex].kind !== ")") {
-//             //     throw new Error("Attempted to build incomplete parnethesized expression");
-//             // }
-//             return { endIndex: endIndex + 1, expression: { kind: "parenthesized", nestedExpression: expression } };
-//         }
-//     }
-// }
-
 function buildExpression(tokens: Token[]) {
     return buildArithmeticExpression(tokens, 0, 0).expression;
 }
@@ -162,27 +127,64 @@ function evaluateExpression(expression: Expression): number {
         case "parenthesized":
             return evaluateExpression(expression.nestedExpression);
         case "arithmetic":
-            return evaluateArithmeticExpression(expression);
+            return evaluateArithmeticExpressionV2(expression);
     }
 }
 
-function evaluateArithmeticExpression(expression: ArithmeticExpression) {
-    const { args, operations } = expression;
-    let result = evaluateExpression(args[0]);
-    for (let index = 0; index < operations.length; index++) {
-        result = evaluateOperation(operations[index], result, evaluateExpression(args[index + 1]));
+// function evaluateArithmeticExpression(expression: ArithmeticExpression) {
+//     const { args, operations } = expression;
+//     let result = evaluateExpression(args[0]);
+//     for (let index = 0; index < operations.length; index++) {
+//         result = evaluateOperation(operations[index], result, evaluateExpression(args[index + 1]));
+//     }
+//     return result;
+// }
+
+function evaluateArithmeticExpressionV2({ args, operations }: ArithmeticExpression): number {
+    while (operations.includes("+")) {
+        const index = operations.indexOf("+");
+        const left = evaluateExpression(args[index]);
+        const right = evaluateExpression(args[index + 1]);
+        const value = left + right;
+        const resultExpr: NumberExpression = { kind: "number", value: value };
+
+        args.splice(index, 2, resultExpr);
+        operations.splice(index, 1);
     }
-    return result;
+
+    while (operations.includes("*")) {
+        const index = operations.indexOf("*");
+        const left = evaluateExpression(args[index]);
+        const right = evaluateExpression(args[index + 1]);
+        const value = left * right;
+        const resultExpr: NumberExpression = { kind: "number", value: value };
+
+        args.splice(index, 2, resultExpr);
+        operations.splice(index, 1);
+    }
+
+    if (args.length !== 1) {
+        console.log(args);
+        console.log(operations);
+        throw new Error("WHAT");
+    }
+
+    const onlyArg = args[0];
+    if (onlyArg.kind !== "number") {
+        throw new Error("WHAT!");
+    }
+
+    return onlyArg.value;
 }
 
-function evaluateOperation(operation: Operation, left: number, right: number) {
-    switch (operation) {
-        case "+":
-            return left + right;
-        case "*":
-            return left * right;
-    }
-}
+// function evaluateOperation(operation: Operation, left: number, right: number) {
+//     switch (operation) {
+//         case "+":
+//             return left + right;
+//         case "*":
+//             return left * right;
+//     }
+// }
 
 const sum = readFileSync("src/2020/day18/input.txt", { encoding: "utf-8" })
     .split("\n")
@@ -192,4 +194,3 @@ const sum = readFileSync("src/2020/day18/input.txt", { encoding: "utf-8" })
     .reduce((a, b) => a + b, 0);
 
 console.log(sum);
-
